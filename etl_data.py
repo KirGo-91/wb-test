@@ -31,40 +31,48 @@ def generate_city_params(city):
   city_params = requests.get('https://user-geo-data.wildberries.ru/get-geo-info', params=params)
   return city_params
 
-cities = ['Москва', 'Санкт-Петербург']
-address_info = {}
-for city in cities:
-  address_info[city] = generate_city_params(city).json()['xinfo']
-
-query_lst = ['кроссовки мужские', 'кроссовки женские']
+cities = ['Санкт-Петербург', 'Москва']
+query_lst = ['джинсы', 'джинсы женские']
 max_page = 2
-brand = 'TimeJump'
+brand = 'JOYCITY'
+arr = []
 
 for city in cities:
+
+  address_info = generate_city_params(city).json()['xinfo']
     
   for query in query_lst:
-    arr = []
+
     pos = 0
 
     for page in range(1,max_page+1):
+
       res = requests.get(f'''
-       https://search.wb.ru/exactmatch/ru/common/v18/search?
-       ab_testing=false&
-       inheritFilters=false&
-       lang=ru&
-       page={page}&
-       query={query}&
-       resultset=catalog&
-       sort=popular&
-       suppressSpellcheck=false&
-       {address_info[city]}
+        https://search.wb.ru/exactmatch/ru/common/v18/search?
+        ab_testid=new_benefit_sort&
+        inheritFilters=false&
+        lang=ru&
+        page={page}&
+        query={query}&
+        resultset=catalog&
+        sort=popular&
+        suppressSpellcheck=false&
+        uclusters=0&
+        {address_info}
        '''.replace('\n', '').replace(' ', '').strip())
-      
+        #headers="User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36")
+
       if res.status_code == 200:
-        response = res.json()['products']
-        for card in response:
+
+        data = res.json()
+        products = data.get('products', [])
+
+        for card in products:
+
           pos += 1
+
           if card['brand'] == brand:
+
             if card.get('log'):
               arr.append([
                       card['name'],
@@ -95,4 +103,4 @@ for row in arr:
                 '''
                 insert into positions values (%s,%s,%s,%s,%s,%s,%s,%s)
                 ''', row
-              )     
+              )    
